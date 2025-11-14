@@ -1,6 +1,8 @@
 LZHAM - Lossless Data Compression Codec
 =============
 
+This is a mod to add stdin/stdout, and many other changes. 
+
 <p>Copyright (c) 2009-2015 Richard Geldreich, Jr. - richgel99@gmail.com - MIT License</p>
 
 <p>Notes: This is the development version of the LZHAM repo, currently at v1.1. The stable repo (v1.0) is here: https://github.com/richgel999/lzham_codec

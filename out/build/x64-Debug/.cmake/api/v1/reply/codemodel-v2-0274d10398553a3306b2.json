@@ -1,0 +1,236 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-cec81fcf88a6e7f0bfc5.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "lzhamcore",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-lzhamcore-Debug-a4161d9c45eafd68def8.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "lzhamcore",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "lzhamdecomp",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-lzhamdecomp-Debug-e0d904a6f39fdf7476a9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "lzhamdecomp",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "lzhamcomp",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-lzhamcomp-Debug-bbe6ef8e8345abbca31e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "lzhamcomp",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "lzhamdll",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-lzhamdll-Debug-4bec53f21bc85c7a4d3e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "lzhamdll",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "lzhamtest",
+					"jsonFile" : "directory-lzhamtest-Debug-895647526e26839cfc97.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 5,
+					"source" : "lzhamtest",
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Project"
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "lzhamcore",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "lzhamdecomp",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "lzhamcomp",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "lzhamdll",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "lzhamtest",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 3,
+					"id" : "lzhamcomp::@d0a9e2159b82a52b259e",
+					"jsonFile" : "target-lzhamcomp-Debug-330a4e132dde17203ff9.json",
+					"name" : "lzhamcomp",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "lzhamcore::@5daf205e477f745b8a20",
+					"jsonFile" : "target-lzhamcore-Debug-15ed6ee89c85d34f5e69.json",
+					"name" : "lzhamcore",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "lzhamdecomp::@c3456f0db36b0d641f7b",
+					"jsonFile" : "target-lzhamdecomp-Debug-ef02b68d165bf6c62488.json",
+					"name" : "lzhamdecomp",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "lzhamdll::@d250d5589a17cc4621a1",
+					"jsonFile" : "target-lzhamdll-Debug-60a23d710a073ebd5d49.json",
+					"name" : "lzhamdll",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "lzhamtest::@fad0604fb79ef7bc1911",
+					"jsonFile" : "target-lzhamtest-Debug-a7c741b2aa4ae5680a77.json",
+					"name" : "lzhamtest",
+					"projectIndex" : 5
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/edslo/source/repos/lzham_codec_devel/out/build/x64-Debug",
+		"source" : "C:/Users/edslo/source/repos/lzham_codec_devel"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 8
+	}
+}

@@ -6,9 +6,7 @@ bool lzham_is_debugger_present(void);
 void lzham_debug_break(void);
 void lzham_output_debug_string(const char* p);
 
-// actually in lzham_assert.cpp
-void lzham_assert(const char* pExp, const char* pFile, unsigned line);
-void lzham_fail(const char* pExp, const char* pFile, unsigned line);
+// lzham_assert/lzham_fail are declared in lzham_assert.h (include that header where needed)
 
 #ifdef WIN32
    #define LZHAM_BREAKPOINT DebuggerBreak();

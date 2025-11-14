@@ -38,9 +38,44 @@
    #define LZHAM_CDECL
 #endif
 
-#ifdef LZHAM_EXPORTS
-   #define LZHAM_DLL_EXPORT __declspec(dllexport)
+#if defined(_WIN32) || defined(__CYGWIN__)
+   // Per-library export macros. Each shared library target should define the
+   // corresponding *_EXPORTS symbol when building that DLL.
+   #if defined(LZHAM_DECOMP_EXPORTS)
+      #define LZHAM_DECOMP_EXPORT __declspec(dllexport)
+   #elif defined(LZHAM_USE_STATIC)
+      #define LZHAM_DECOMP_EXPORT
+   #elif defined(_MSC_VER)
+      #define LZHAM_DECOMP_EXPORT __declspec(dllimport)
+   #else
+      #define LZHAM_DECOMP_EXPORT
+   #endif
+
+   #if defined(LZHAM_COMP_EXPORTS)
+      #define LZHAM_COMP_EXPORT __declspec(dllexport)
+   #elif defined(LZHAM_USE_STATIC)
+      #define LZHAM_COMP_EXPORT
+   #elif defined(_MSC_VER)
+      #define LZHAM_COMP_EXPORT __declspec(dllimport)
+   #else
+      #define LZHAM_COMP_EXPORT
+   #endif
+
+   // Generic DLL export macro for the consolidated C API (lzhamdll).
+   // Prefer using per-library macros (LZHAM_DECOMP_EXPORT / LZHAM_COMP_EXPORT)
+   // for internal libraries, but the public C API (lzham.dll) uses LZHAM_DLL_EXPORT.
+   #if defined(LZHAM_DLL_EXPORTS)
+      #define LZHAM_DLL_EXPORT __declspec(dllexport)
+   #elif defined(LZHAM_USE_STATIC)
+      #define LZHAM_DLL_EXPORT
+   #elif defined(_MSC_VER)
+      #define LZHAM_DLL_EXPORT __declspec(dllimport)
+   #else
+      #define LZHAM_DLL_EXPORT
+   #endif
 #else
+   #define LZHAM_DECOMP_EXPORT
+   #define LZHAM_COMP_EXPORT
    #define LZHAM_DLL_EXPORT
 #endif
 

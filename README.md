@@ -173,6 +173,33 @@ The x86 version defaults to 64MB (26), and the x64 version defaults to 256MB (28
 
 See lzhamtest_x86/x64.exe's help text for more command line parameters.
 
+### Command-line test tool: stdin/stdout and streaming
+
+The `lzhamtest` command line tool supports using a single dash (`-`) to mean stdin for input or stdout for output. This is useful for piping data to/from the test harness.
+
+Additionally, `lzhamtest` provides a `-S` option to allow streaming directly from stdin without first copying stdin into a temporary, seekable file. This avoids creating a temporary file and is intended for true streaming workflows. Example usages:
+
+- Compress data read from stdin and write compressed output to a file:
+	lzhamtest_x64 -S c - out.lzh
+
+- Compress a file and write compressed output to stdout:
+	lzhamtest_x64 c file.dat -
+
+- Decompress compressed data from stdin to stdout (use `-` for both input and output):
+	lzhamtest_x64 d - -
+
+Notes and caveats:
+- By default, when input is `-` the tool historically copied stdin into a temporary seekable file so the compressor could rewind/seek. Use `-S` to opt out of that behavior and stream directly from stdin.
+- When streaming with `-S` the compressed file header will record an unknown original size (0). The new decompressor has been updated to tolerate this and will stream output until the compressed stream ends, but some strict size checks are skipped in this mode.
+- when -S is not used with stdin/stdout - - or when -S is used with an output file
+the program now backpatches the file header and legacy decoders will be able to read it.
+- stdin as '-' with -S and output is stdout - or another non‑seekable target (pipe, stdout redirection to another process, etc.):
+Backpatching is impossible because stdout/pipe is not seekable. The header remains orig_size==0 and legacy decoders will fail on that archive.
+- Streaming from stdin (`-S`) is incompatible with compressor reinit/repeat testing modes that require a seekable input source. The tool will reject `-S` in those cases.
+- The test harness avoids closing `stdin`/`stdout` when using `-` by using safe-close semantics internally; you can safely pipe multiple commands together.
+- Platform notes: `-S` avoids copying stdin to a tmpfile; on platforms where tmpfile() has different semantics seekable behavior may vary. On Windows builds this feature was added to support common pipeline scenarios.
+
+
 <h3>Compiling LZHAM</h3>
 
 - Linux: Use "cmake ." then "make". The cmake script only supports Linux at the moment. (Sorry, working on build systems is a drag.)
@@ -214,3 +241,33 @@ post I could get my hands on. Especially anything related to LZ optimal parsing,
 learning how to implement optimal parsing (and you can see this if you study the progress I made in the early alphas on Google Code).</p>
 
 <p>Also, thanks to Igor Pavlov, the original creator of LZMA and 7zip, for advancing the start of the art in LZ compression.</p>
+
+## Export / Static build policy
+
+This repository centralizes DLL export and static build behavior so headers and targets behave correctly whether you build shared DLLs or static libraries.
+
+- BUILD_SHARED_LIBS=ON (default): per-target export macros are used. Each provider target may define a compile definition such as `LZHAM_DECOMP_EXPORTS`, `LZHAM_COMP_EXPORTS`, or `LZHAM_DLL_EXPORTS` so the corresponding headers apply `__declspec(dllexport)` when building the DLL and `__declspec(dllimport)` for consumers.
+- BUILD_SHARED_LIBS=OFF: a global compile definition `LZHAM_USE_STATIC` is defined. Headers detect this and avoid `__declspec(dllimport)`, so static linking works cleanly.
+
+A small CMake helper is provided in `cmake/LZHAMExportPolicy.cmake` which:
+
+- Defines `lzham_configure_export_policy()` — call this from the top-level `CMakeLists.txt` (already done in this tree). It sets `LZHAM_USE_STATIC` for static builds.
+- Provides `lzham_set_target_export_macro(<target> <EXPORT_MACRO>)` which will add the given compile definition to `<target>` when building shared libs (example: `lzham_set_target_export_macro(lzhamdecomp LZHAM_DECOMP_EXPORTS)`).
+
+How to build:
+
+```powershell
+# Static build (no DLLs, headers won't use dllimport):
+cmake -S . -B build_x64 -DBUILD_SHARED_LIBS=OFF
+cmake --build build_x64 --config Release --target lzhamtest -- /m
+
+# Shared build (DLLs with import libs):
+cmake -S . -B build_x64 -DBUILD_SHARED_LIBS=ON
+cmake --build build_x64 --config Release --target lzhamtest -- /m
+```
+
+Notes:
+
+- If you change target-level export behavior, prefer using `lzham_set_target_export_macro()` so the policy remains consistent.
+- If you want the executable to statically link the CRT (MSVC /MT), adjust the MSVC runtime flags in the relevant CMake files.
+

@@ -1,0 +1,34 @@
+name: Build and run streaming test (Windows)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (x64 Release)
+        shell: cmd
+        run: |
+          cmake -S . -B build_x64 -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build ALL_BUILD (Release)
+        shell: cmd
+        run: |
+          cmake --build build_x64 --config Release --target ALL_BUILD
+
+      - name: Run streaming test PowerShell script
+        # run the existing scripts\run_stream_test.ps1 which pipes compressed bytes into the
+        # decompressor and validates the output. Use PowerShell with execution policy bypass.
+        shell: powershell
+        run: |
+          Write-Host "Running streaming test script..."
+          # ensure the script is executable under CI environment
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_stream_test.ps1

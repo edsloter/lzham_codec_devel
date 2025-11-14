@@ -2,18 +2,20 @@
 // See Copyright Notice and license at the end of include/lzham.h
 #pragma once
 
+#include "lzham_core.h"
+
 //#define LZHAM_LZDEBUG
 
 #define LZHAM_IS_MATCH_MODEL_INDEX(cur_state) (cur_state)
 
 namespace lzham
 {
-	struct table_update_settings
-	{
-		uint16 m_max_update_interval;
-		uint16 m_slow_rate;
-	};
-	extern table_update_settings g_table_update_settings[];
+   struct table_update_settings
+   {
+      uint16 m_max_update_interval;
+      uint16 m_slow_rate;
+   };
+   extern table_update_settings g_table_update_settings[];
 
    struct CLZDecompBase
    {
@@ -73,16 +75,16 @@ namespace lzham
          cNumStates = 12,
          cNumLitStates = 7,
       };
-				      
+                              
       uint m_dict_size_log2;
       uint m_dict_size;
       
       uint m_num_lzx_slots;
 
-      static uint m_lzx_position_base[cLZXMaxPositionSlots];
-      static uint m_lzx_position_extra_mask[cLZXMaxPositionSlots];
-      static uint8 m_lzx_position_extra_bits[cLZXMaxPositionSlots];
-		            
+   static uint m_lzx_position_base[cLZXMaxPositionSlots];
+   static uint m_lzx_position_extra_mask[cLZXMaxPositionSlots];
+   static uint8 m_lzx_position_extra_bits[cLZXMaxPositionSlots];
+                    
       void init_position_slots(uint dict_size_log2);
    };
    

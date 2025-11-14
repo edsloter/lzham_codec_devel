@@ -97,7 +97,8 @@ int main(int argc, char *argv[])
    printf("Mode: %c, Level: %u\nInput File: \"%s\"\nOutput File: \"%s\"\n", pMode[0], level, pSrc_filename, pDst_filename);
       
    // Open input file.
-   pInfile = fopen(pSrc_filename, "rb");
+#include "../include/secure_crt.h"
+   pInfile = fopen_secure(pSrc_filename, "rb");
    if (!pInfile)
    {
       printf("Failed opening input file!\n");
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
    fseek(pInfile, 0, SEEK_SET);
 
    // Open output file.
-   pOutfile = fopen(pDst_filename, "wb");
+   pOutfile = fopen_secure(pDst_filename, "wb");
    if (!pOutfile)
    {
       printf("Failed opening output file!\n");

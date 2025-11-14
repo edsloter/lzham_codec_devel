@@ -85,8 +85,20 @@ public:
       m_handle = LoadLibraryA(pModulePath);
       if (NULL == m_handle)
       {
+         // Primary load failed — try a safe fallback: attempt to load the canonical
+         // project-produced DLL name "lzhamdll.dll" in case the build produced
+         // a differently-named artifact. This makes the loader tolerant of both
+         // the arch-specific name (lzham_x64.dll) and the original target name.
          m_win32_error = HRESULT_FROM_WIN32(GetLastError());
-         return m_win32_error;
+
+         // Try a simple fallback by name. LoadLibrary will search the exe directory first.
+         m_handle = LoadLibraryA("lzhamdll.dll");
+         if (NULL == m_handle)
+         {
+            // Still failed — return the original error to the caller.
+            m_win32_error = HRESULT_FROM_WIN32(GetLastError());
+            return m_win32_error;
+         }
       }
 
       struct

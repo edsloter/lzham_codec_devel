@@ -5,14 +5,13 @@
 namespace lzham
 {
    typedef void *lzham_malloc_context;
-
-   lzham_malloc_context lzham_create_malloc_context(uint arena_size);
-   void lzham_destroy_malloc_context(lzham_malloc_context context);
+   LZHAM_DECOMP_EXPORT lzham_malloc_context lzham_create_malloc_context(uint arena_size);
+   LZHAM_DECOMP_EXPORT void lzham_destroy_malloc_context(lzham_malloc_context context);
    
-   void*    lzham_malloc(lzham_malloc_context context, size_t size, size_t* pActual_size = NULL);
-   void*    lzham_realloc(lzham_malloc_context context, void* p, size_t size, size_t* pActual_size = NULL, bool movable = true);
-   void     lzham_free(lzham_malloc_context context, void* p);
-   size_t   lzham_msize(lzham_malloc_context context, void* p);
+   LZHAM_DECOMP_EXPORT void*    lzham_malloc(lzham_malloc_context context, size_t size, size_t* pActual_size = NULL);
+   LZHAM_DECOMP_EXPORT void*    lzham_realloc(lzham_malloc_context context, void* p, size_t size, size_t* pActual_size = NULL, bool movable = true);
+   LZHAM_DECOMP_EXPORT void     lzham_free(lzham_malloc_context context, void* p);
+   LZHAM_DECOMP_EXPORT size_t   lzham_msize(lzham_malloc_context context, void* p);
 
    template<typename T>
    inline T* lzham_new(lzham_malloc_context context)
@@ -110,6 +109,6 @@ namespace lzham
       }
    }   
    
-   void lzham_print_mem_stats(lzham_malloc_context context);
+   LZHAM_DECOMP_EXPORT void lzham_print_mem_stats(lzham_malloc_context context);
 
 } // namespace lzham

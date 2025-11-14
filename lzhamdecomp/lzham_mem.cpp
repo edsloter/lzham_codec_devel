@@ -130,7 +130,7 @@ namespace lzham
    static lzham_msize_func          g_pMSize   = lzham_default_msize;
    static void*                     g_pUser_data;
 
-   void LZHAM_CDECL lzham_lib_set_memory_callbacks(lzham_realloc_func pRealloc, lzham_msize_func pMSize, void* pUser_data)
+   LZHAM_DECOMP_EXPORT void LZHAM_CDECL lzham_lib_set_memory_callbacks(lzham_realloc_func pRealloc, lzham_msize_func pMSize, void* pUser_data)
    {
       if ((!pRealloc) || (!pMSize))
       {

@@ -11,6 +11,7 @@
 // This is totally optional - you can also directly use the lzham_* functions and macros instead.
 #define LZHAM_DEFINE_ZLIB_API
 #include "lzham_static_lib.h"
+#include "../include/secure_crt.h"
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -45,8 +46,8 @@ static bool sequential_test()
 
    for (uint i = 0; i < 1000; i++)
    {
-      memset(s_inbuf, 0, 128);
-      sprintf((char*)s_inbuf, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
+   memset(s_inbuf, 0, 128);
+   SAFE_SPRINTF((char*)s_inbuf, cRecordSize, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
       
       stream.next_in = s_inbuf;
       stream.avail_in = cRecordSize;
@@ -111,8 +112,8 @@ static bool sequential_test()
          return false;
       }
 
-      memset(s_inbuf, 0, 128);
-      sprintf((char*)s_inbuf, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
+   memset(s_inbuf, 0, 128);
+   SAFE_SPRINTF((char*)s_inbuf, cRecordSize, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
       if (memcmp(s_inbuf, s_outbuf, cRecordSize) != 0)
          return false;
 
@@ -145,8 +146,8 @@ static bool random_test()
 
    for (uint i = 0; i < cTotalRecords; i++)
    {
-      memset(s_inbuf, 0, 128);
-      sprintf((char*)s_inbuf, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
+   memset(s_inbuf, 0, 128);
+   SAFE_SPRINTF((char*)s_inbuf, cRecordSize, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", i, i, i, i);
 
       stream.next_in = s_inbuf;
       stream.avail_in = cRecordSize;
@@ -199,8 +200,8 @@ static bool random_test()
          return false;
       }
 
-      memset(s_inbuf, 0, 128);
-      sprintf((char*)s_inbuf, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", rec_index, rec_index, rec_index, rec_index);
+   memset(s_inbuf, 0, 128);
+   SAFE_SPRINTF((char*)s_inbuf, cRecordSize, "%u, %u, %u, %u, This is a testThis is a testThis is a testThis is a testThis is a test\n", rec_index, rec_index, rec_index, rec_index);
       if (memcmp(s_inbuf, s_outbuf, cRecordSize) != 0)
          return false;
 

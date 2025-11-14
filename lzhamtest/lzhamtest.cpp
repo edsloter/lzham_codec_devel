@@ -25,10 +25,10 @@
 
 #include "timer.h"
 
-#define my_max(a,b) (((a) > (b)) ? (a) : (b))
-#define my_min(a,b) (((a) < (b)) ? (a) : (b))
-
-#define LZHAM_PRINT_OUTPUT_PROGRESS
+#ifdef WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 // Note: lzham can be used as static libs, or as a DLL. The default (out of the box) configuration under Win32 loads the DLL.
 // To test lzham as a static library under Win32, set LZHAM_USE_LZHAM_DLL to 0, add ../lzhamcomp and ../lzhamdecomp to the additional inc paths, and link with the lzhamcomp and lzhamdecomp libs.
@@ -40,9 +40,12 @@
 #elif defined(WIN32)
    #define WIN32_LEAN_AND_MEAN
    #include <windows.h>
-   #ifndef LZHAM_USE_LZHAM_DLL
-      #define LZHAM_USE_LZHAM_DLL 1
-   #endif
+   /*
+    * Do not forcibly define LZHAM_USE_LZHAM_DLL here: let the build system (CMake)
+    * set LZHAM_USE_LZHAM_DLL appropriately for shared vs static builds. Previously
+    * this file forced a default value which could conflict with project-level
+    * compile definitions and cause linkage errors.
+    */
 #elif defined(__APPLE__)
    #include <unistd.h>
    #define Sleep(ms) usleep(ms*1000)
@@ -58,7 +61,7 @@
    #define _aligned_free free
    #define fopen fopen
    #define _fseeki64 fseeko
-   #define _ftelli64 ftello
+   #   define _ftelli64 ftello
 #else
    #include <unistd.h>
    #define Sleep(ms) usleep(ms*1000)
@@ -99,6 +102,27 @@ typedef unsigned int uint32;
    typedef signed __int64        int64;
 #endif
 
+   // Runtime-controllable debug printing. When piping binary data to/from stdout/stderr
+   // we may need to suppress all diagnostic output so stdout remains binary-clean.
+   static bool g_quiet_stdio = false;
+
+   static void debug_printf(const char *pMsg, ...)
+   {
+      if (g_quiet_stdio)
+         return;
+
+      va_list args;
+      va_start(args, pMsg);
+      vfprintf(stderr, pMsg, args);
+      va_end(args);
+      fflush(stderr);
+   }
+
+   // Map existing printf() calls to debug_printf so they can be suppressed at runtime
+   // when stdout must be binary-clean for piping.
+   #undef printf
+   #define printf(...) debug_printf(__VA_ARGS__)
+
 #ifdef LZHAM_64BIT
    #define LZHAMTEST_MAX_POSSIBLE_DICT_SIZE LZHAM_MAX_DICT_SIZE_LOG2_X64
    // 256MB default dictionary size under x64 (max is 512MB, but this requires more than 4GB of physical memory without thrashing)
@@ -130,14 +154,15 @@ struct comp_options
       m_dict_size_log2(LZHAMTEST_DEFAULT_DICT_SIZE),
       m_compute_adler32_during_decomp(true),
       m_max_helper_threads(0),
-      m_unbuffered_decompression(false),
+        m_unbuffered_decompression(false),
+        m_streaming_no_tmpfile(false),
       m_verify_compressed_data(false),
       m_randomize_params(false),
       m_extreme_parsing(false),
       m_deterministic_parsing(false),
       m_tradeoff_decomp_rate_for_comp_ratio(false),
       m_test_compressor_reinit(false),
-		m_table_update_rate(LZHAM_DEFAULT_TABLE_UPDATE_RATE),
+      m_table_update_rate(LZHAM_DEFAULT_TABLE_UPDATE_RATE),
       m_max_best_arrivals(4),
       m_force_single_threaded_parsing(false),
       m_low_memory_finder(false),
@@ -147,22 +172,22 @@ struct comp_options
 
    void print()
    {
-      printf("Comp level: %u\n", m_comp_level);
-      printf("Dict size: %i (%u bytes)\n", m_dict_size_log2, 1 << m_dict_size_log2);
-      printf("Compute adler32 during decompression: %u\n", (uint)m_compute_adler32_during_decomp);
-      printf("Max helper threads: %i\n", m_max_helper_threads);
-      printf("Unbuffered decompression: %u\n", (uint)m_unbuffered_decompression);
-      printf("Verify compressed data: %u\n", (uint)m_verify_compressed_data);
-      printf("Extreme parsing: %u\n", (uint)m_extreme_parsing);
-      printf("Randomize parameters: %u\n", m_randomize_params);
-      printf("Deterministic parsing: %u\n", m_deterministic_parsing);
-      printf("Trade off decompression rate for compression ratio: %u\n", m_tradeoff_decomp_rate_for_comp_ratio);
-      printf("Test compressor reinit: %u\n", m_test_compressor_reinit);
-		printf("Table update speed: %u\n", m_table_update_rate);
-      printf("Max best arrivals: %u\n", m_max_best_arrivals);
-      printf("Force single threaded parsing: %u\n", m_force_single_threaded_parsing);
-      printf("Use low memory match finder: %u\n", m_low_memory_finder);
-      printf("Parsing fast bytes: %u\n", m_fast_bytes);
+   printf("Comp level: %u\n", m_comp_level);
+   printf("Dict size: %i (%u bytes)\n", m_dict_size_log2, 1 << m_dict_size_log2);
+   printf("Compute adler32 during decompression: %u\n", (uint)m_compute_adler32_during_decomp);
+   printf("Max helper threads: %i\n", m_max_helper_threads);
+   printf("Unbuffered decompression: %u\n", (uint)m_unbuffered_decompression);
+   printf("Verify compressed data: %u\n", (uint)m_verify_compressed_data);
+   printf("Extreme parsing: %u\n", (uint)m_extreme_parsing);
+   printf("Randomize parameters: %u\n", m_randomize_params);
+   printf("Deterministic parsing: %u\n", m_deterministic_parsing);
+   printf("Trade off decompression rate for compression ratio: %u\n", m_tradeoff_decomp_rate_for_comp_ratio);
+   printf("Test compressor reinit: %u\n", m_test_compressor_reinit);
+   printf("Table update speed: %u\n", m_table_update_rate);
+   printf("Max best arrivals: %u\n", m_max_best_arrivals);
+   printf("Force single threaded parsing: %u\n", m_force_single_threaded_parsing);
+   printf("Use low memory match finder: %u\n", m_low_memory_finder);
+   printf("Parsing fast bytes: %u\n", m_fast_bytes);
    }
 
    lzham_compress_level m_comp_level;
@@ -170,19 +195,78 @@ struct comp_options
    bool m_compute_adler32_during_decomp;
    int m_max_helper_threads;           // -1 = try to auto-detect
    bool m_unbuffered_decompression;
+   bool m_streaming_no_tmpfile;
    bool m_verify_compressed_data;
    bool m_randomize_params;
    bool m_extreme_parsing;
    bool m_deterministic_parsing;
    bool m_tradeoff_decomp_rate_for_comp_ratio;
    bool m_test_compressor_reinit;
-	uint m_table_update_rate;
+   uint m_table_update_rate;
    uint m_max_best_arrivals;
    bool m_force_single_threaded_parsing;
    bool m_low_memory_finder;
    uint m_fast_bytes;
 };
 
+// Helpers to safely close FILE* returned from helper openers. These avoid closing
+// stdin/stdout when a caller passes "-" to indicate standard streams.
+#define SAFE_FCLOSE_IN(p) do { if ((p) && ((p) != stdin)) { fclose(p); } } while(0)
+#define SAFE_FCLOSE_OUT(p) do { if ((p) && ((p) != stdout)) { fclose(p); } } while(0)
+
+#define my_max(a,b) (((a) > (b)) ? (a) : (b))
+#define my_min(a,b) (((a) < (b)) ? (a) : (b))
+
+// Forward declarations for helper functions (definitions appear below).
+static void print_error(const char *pMsg, ...);
+static void print_usage();
+static FILE* open_file_with_retries(const char *pFilename, const char* pMode);
+static bool ensure_file_is_writable(const char *pFilename);
+
+// Secure CRT wrappers: use secure variants on MSVC, fallback to standard ones elsewhere.
+static FILE* fopen_secure(const char *pFilename, const char* pMode)
+{
+#ifdef _MSC_VER
+   FILE *pFile = NULL;
+   if (fopen_s(&pFile, pFilename, pMode) == 0)
+      return pFile;
+   return NULL;
+#else
+   return fopen(pFilename, pMode);
+#endif
+}
+
+static FILE* tmpfile_secure()
+{
+#ifdef _MSC_VER
+   FILE *pFile = NULL;
+   if (tmpfile_s(&pFile) == 0)
+      return pFile;
+   return NULL;
+#else
+   return tmpfile();
+#endif
+}
+
+static std::string get_env_var(const char *pName)
+{
+#ifdef _MSC_VER
+   char *buf = NULL;
+   size_t len = 0;
+   if (_dupenv_s(&buf, &len, pName) == 0 && buf)
+   {
+      std::string s(buf);
+      free(buf);
+      return s;
+   }
+   return std::string();
+#else
+   const char *v = getenv(pName);
+   return v ? std::string(v) : std::string();
+#endif
+}
+
+// Helper function definitions (moved out of comp_options scope)
 static void print_usage()
 {
    printf("Usage: [options] [mode] inpath/infile [outfile]\n");
@@ -215,13 +299,19 @@ static void print_usage()
    printf("-afilename Enable delta compression using the specified seed file.\n");
    printf("           The same seed file MUST be used for compression/decompression.\n");
    printf("-r - Use randomized parameters for each file.\n");
-	printf("-h[0-%u] - Set Huffman table update frequency. 0=Internal def, Def=%u, higher=faster.\n", LZHAM_FASTEST_TABLE_UPDATE_RATE, LZHAM_DEFAULT_TABLE_UPDATE_RATE);
-	printf(" Lower settings=slower decompression, but higher ratio. Note 1=impractically slow.\n");
+   printf("-h[0-%u] - Set Huffman table update frequency. 0=Internal def, Def=%u, higher=faster.\n", LZHAM_FASTEST_TABLE_UPDATE_RATE, LZHAM_DEFAULT_TABLE_UPDATE_RATE);
+   printf(" Lower settings=slower decompression, but higher ratio. Note 1=impractically slow.\n");
    printf("-b - Force single threaded parsing for higher compression ratios (slower).\n");
    printf("-F - Use low memory hash finder (16-bit vs. 24-bit hashing)\n");
    printf("-f# - Set extreme parser's \"fast bytes\" setting (16-257, default=128, lower=faster)\n");
+   printf("\nSpecial filenames:\n");
+   printf(" - Use '-' as a filename to mean stdin (for input) or stdout (for output).\n");
+   printf("   Example: 'lzhamtest -S d - -' reads compressed data from stdin and writes decompressed bytes to stdout.\n");
+   printf(" -S : Stream directly from stdin (no temporary file). Use with '-' for stdin/stdout.\n");
+   printf("       When streaming, the original input size is unknown (orig size written as 0 in the header).\n");
+   printf("       Note: Using -S together with output '-' (stdout) prevents backpatching the header and will break legacy decoders.\n");
+   printf(" -q or --quiet : Suppress all diagnostic output (keeps stdout binary-clean for piping).\n");
 }
-
 static void print_error(const char *pMsg, ...)
 {
    char buf[1024];
@@ -233,7 +323,7 @@ static void print_error(const char *pMsg, ...)
 
    buf[sizeof(buf) - 1] = '\0';
 
-   fprintf(stderr, "Error: %s", buf);
+   printf("Error: %s", buf);
 }
 
 static FILE* open_file_with_retries(const char *pFilename, const char* pMode)
@@ -241,7 +331,7 @@ static FILE* open_file_with_retries(const char *pFilename, const char* pMode)
    const uint cNumRetries = 8;
    for (uint i = 0; i < cNumRetries; i++)
    {
-      FILE* pFile = fopen(pFilename, pMode);
+   FILE* pFile = fopen_secure(pFilename, pMode);
       if (pFile)
          return pFile;
       Sleep(250);
@@ -254,7 +344,7 @@ static bool ensure_file_is_writable(const char *pFilename)
    const int cNumRetries = 8;
    for (int i = 0; i < cNumRetries; i++)
    {
-      FILE *pFile = fopen(pFilename, "wb");
+   FILE *pFile = fopen_secure(pFilename, "wb");
       if (pFile)
       {
          fclose(pFile);
@@ -264,6 +354,10 @@ static bool ensure_file_is_writable(const char *pFilename)
    }
    return false;
 }
+
+#define LZHAM_PRINT_OUTPUT_PROGRESS
+
+/* duplicate include-selection removed; helper functions are defined below once */
 
 static int simple_test(ilzham &lzham_dll, const comp_options &options)
 {
@@ -335,7 +429,7 @@ static bool read_seed_file(const char *pSeed_filename, lzham_uint32 &num_seed_by
 
    if (pSeed_filename)
    {
-      FILE *pSeed_file = fopen(pSeed_filename, "rb");
+   FILE *pSeed_file = fopen_secure(pSeed_filename, "rb");
       if (!pSeed_file)
       {
          print_error("Unable to open file: %s\n", pSeed_filename);
@@ -383,23 +477,74 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
 
    printf("Testing: Streaming compression\n");
 
-   FILE *pInFile = fopen(pSrc_filename, "rb");
-   if (!pInFile)
+   FILE *pInFile = NULL;
+   FILE *pTmpIn = NULL;
+   FILE *pOutFile = NULL;
+   bool is_src_stdin = (pSrc_filename && (pSrc_filename[0] == '-') && (pSrc_filename[1] == '\0'));
+   bool is_streaming_no_tmpfile = is_src_stdin && options.m_streaming_no_tmpfile;
+   if (is_streaming_no_tmpfile)
    {
-      print_error("Unable to read file: %s\n", pSrc_filename);
-      return false;
+      if (options.m_test_compressor_reinit)
+      {
+         print_error("-S (streaming stdin) is incompatible with compressor reinit testing\n");
+         return false;
+      }
+      // Stream directly from stdin (no tmpfile). Note: original size will be unknown (0).
+      pInFile = stdin;
+#ifdef WIN32
+      _setmode(_fileno(stdin), _O_BINARY);
+#endif
+   }
+   else if (is_src_stdin)
+   {
+   pTmpIn = tmpfile_secure();
+      if (!pTmpIn) { print_error("Failed creating temporary file for stdin\n"); return false; }
+      const size_t cBuf = 65536;
+      char buf[cBuf];
+      size_t n;
+      while ((n = fread(buf, 1, cBuf, stdin)) > 0)
+      {
+         if (fwrite(buf, 1, n, pTmpIn) != n) { print_error("Failed writing to temporary file for stdin\n"); fclose(pTmpIn); return false; }
+      }
+      fflush(pTmpIn);
+      _fseeki64(pTmpIn, 0, SEEK_SET);
+      pInFile = pTmpIn;
+   }
+   else
+   {
+      pInFile = open_file_with_retries(pSrc_filename, "rb");
+      if (!pInFile) { print_error("Unable to read file: %s\n", pSrc_filename); return false; }
    }
 
-   FILE *pOutFile = fopen(pDst_filename, "wb");
+   bool is_dst_stdout = (pDst_filename && (pDst_filename[0] == '-') && (pDst_filename[1] == '\0'));
+
+   // Open output file (may be stdout)
+   pOutFile = is_dst_stdout ? stdout : open_file_with_retries(pDst_filename, "wb");
    if (!pOutFile)
    {
+      if (pTmpIn) fclose(pTmpIn);
       print_error("Unable to create file: %s\n", pDst_filename);
       return false;
    }
+     // Warn if user requested streaming from stdin and the output is stdout (non-seekable)
+     if (is_streaming_no_tmpfile && is_dst_stdout)
+     {
+        printf("Warning: using -S (streaming stdin) with output '-' (stdout). Backpatching the original-size header is impossible on non-seekable stdout/pipe. Legacy decoders that expect a non-zero original size may fail.\n");
+     }
+   if (is_dst_stdout)
+   {
+#ifdef WIN32
+      _setmode(_fileno(stdout), _O_BINARY);
+#endif
+   }
 
-   _fseeki64(pInFile, 0, SEEK_END);
-   uint64 src_file_size = _ftelli64(pInFile);
-   _fseeki64(pInFile, 0, SEEK_SET);
+   uint64 src_file_size = 0;
+   if (!is_streaming_no_tmpfile)
+   {
+      _fseeki64(pInFile, 0, SEEK_END);
+      src_file_size = _ftelli64(pInFile);
+      _fseeki64(pInFile, 0, SEEK_SET);
+   }
 
    fputc('L', pOutFile);
    fputc('Z', pOutFile);
@@ -422,14 +567,16 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
    if ((!in_file_buf) || (!out_file_buf))
    {
       print_error("Out of memory!\n");
-      _aligned_free(in_file_buf);
-      _aligned_free(out_file_buf);
-      fclose(pInFile);
-      fclose(pOutFile);
+   _aligned_free(in_file_buf);
+   _aligned_free(out_file_buf);
+   SAFE_FCLOSE_IN(pInFile);
+   SAFE_FCLOSE_OUT(pOutFile);
       return false;
    }
 
-   uint64 src_bytes_left = src_file_size;
+   uint64 src_bytes_left = is_streaming_no_tmpfile ? static_cast<uint64>(-1) : src_file_size;
+   // Track total input bytes when streaming from stdin so we can backpatch the header later
+   uint64 total_input_bytes = 0;
 
    uint in_file_buf_size = 0;
    uint in_file_buf_ofs = 0;
@@ -465,8 +612,8 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
       {
          _aligned_free(in_file_buf);
          _aligned_free(out_file_buf);
-         fclose(pInFile);
-         fclose(pOutFile);
+         SAFE_FCLOSE_IN(pInFile);
+         SAFE_FCLOSE_OUT(pOutFile);
          return false;
       }
    }
@@ -489,10 +636,10 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
    if (!pComp_state)
    {
       print_error("Failed initializing compressor!\n");
-      _aligned_free(in_file_buf);
-      _aligned_free(out_file_buf);
-      fclose(pInFile);
-      fclose(pOutFile);
+   _aligned_free(in_file_buf);
+   _aligned_free(out_file_buf);
+   SAFE_FCLOSE_IN(pInFile);
+   SAFE_FCLOSE_OUT(pOutFile);
       _aligned_free((void*)params.m_pSeed_bytes);
       return false;
    }
@@ -523,24 +670,51 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
 
          if (in_file_buf_ofs == in_file_buf_size)
          {
-            in_file_buf_size = static_cast<uint>(my_min(cInBufSize, src_bytes_left));
-
-            if (fread(in_file_buf, 1, in_file_buf_size, pInFile) != in_file_buf_size)
+            if (is_streaming_no_tmpfile)
             {
-               printf("\n");
-               print_error("Failure reading from source file!\n");
-               _aligned_free(in_file_buf);
-               _aligned_free(out_file_buf);
-               fclose(pInFile);
-               fclose(pOutFile);
-               _aligned_free((void*)params.m_pSeed_bytes);
-               lzham_dll.lzham_compress_deinit(pComp_state);
-               return false;
+               // Read up to the input buffer size from stdin (streaming, non-seekable). Treat short reads as EOF rather than an error.
+               in_file_buf_size = static_cast<uint>(cInBufSize);
+               size_t nread = fread(in_file_buf, 1, in_file_buf_size, pInFile);
+               if (nread == 0)
+               {
+                  // No more input available.
+                  in_file_buf_size = 0;
+                  src_bytes_left = 0;
+               }
+               else
+               {
+                  in_file_buf_size = static_cast<uint>(nread);
+                     total_input_bytes += nread;
+                  // If we read less than requested, we've hit EOF.
+                  if (nread < cInBufSize)
+                     src_bytes_left = 0;
+                  else
+                     src_bytes_left = static_cast<uint64>(-1);
+               }
+
+               in_file_buf_ofs = 0;
             }
+            else
+            {
+               in_file_buf_size = static_cast<uint>(my_min(cInBufSize, src_bytes_left));
 
-            src_bytes_left -= in_file_buf_size;
+               if (fread(in_file_buf, 1, in_file_buf_size, pInFile) != in_file_buf_size)
+               {
+                  printf("\n");
+                  print_error("Failure reading from source file!\n");
+                  _aligned_free(in_file_buf);
+                  _aligned_free(out_file_buf);
+                  SAFE_FCLOSE_IN(pInFile);
+                  SAFE_FCLOSE_OUT(pOutFile);
+                  _aligned_free((void*)params.m_pSeed_bytes);
+                  lzham_dll.lzham_compress_deinit(pComp_state);
+                  return false;
+               }
 
-            in_file_buf_ofs = 0;
+               src_bytes_left -= in_file_buf_size;
+
+               in_file_buf_ofs = 0;
+            }
          }
 
          uint8 *pIn_bytes = &in_file_buf[in_file_buf_ofs];
@@ -568,8 +742,8 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
                print_error("Failure writing to destination file!\n");
                _aligned_free(in_file_buf);
                _aligned_free(out_file_buf);
-               fclose(pInFile);
-               fclose(pOutFile);
+               SAFE_FCLOSE_IN(pInFile);
+               SAFE_FCLOSE_OUT(pOutFile);
                _aligned_free((void*)params.m_pSeed_bytes);
                lzham_dll.lzham_compress_deinit(pComp_state);
                return false;
@@ -612,7 +786,7 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
          printf("lzham_compress_reinit took %3.3fms\n", timer::ticks_to_secs(total_init_time)*1000.0f);
 
          fseek(pInFile, 0, SEEK_SET);
-         fseek(pOutFile, static_cast<long>(cmp_file_header_size), SEEK_SET);
+         _fseeki64(pOutFile, static_cast<long long>(cmp_file_header_size), SEEK_SET);
 
          src_bytes_left = src_file_size;
          in_file_buf_size = 0;
@@ -634,7 +808,7 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
    pComp_state = NULL;
 
    timer_ticks end_time = timer::get_ticks();
-   double total_time = timer::ticks_to_secs(my_max(1, end_time - start_time));
+   double total_time = timer::ticks_to_secs(my_max(1LL, end_time - start_time));
 
    uint64 cmp_file_size = _ftelli64(pOutFile);
 
@@ -645,9 +819,33 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
    _aligned_free((void*)params.m_pSeed_bytes);
    params.m_pSeed_bytes = NULL;
 
-   fclose(pInFile);
+   SAFE_FCLOSE_IN(pInFile);
    pInFile = NULL;
-   fclose(pOutFile);
+
+   // If we streamed from stdin (orig size was written as 0) but wrote output to a regular file,
+   // backpatch the header with the true input size so legacy decoders can read the archive.
+   if (is_streaming_no_tmpfile && (!is_dst_stdout))
+   {
+      // cmp_file_header_size is the file offset immediately after the header. The orig size starts 8 bytes before that.
+      int64 header_orig_size_ofs = static_cast<int64>(cmp_file_header_size) - 8;
+      if (header_orig_size_ofs >= 0)
+      {
+         // Seek and write the real original size in little-endian
+         if (_fseeki64(pOutFile, header_orig_size_ofs, SEEK_SET) == 0)
+         {
+            for (uint i = 0; i < 8; i++)
+            {
+               int b = static_cast<int>((total_input_bytes >> (i * 8)) & 0xFF);
+               fputc(b, pOutFile);
+            }
+            fflush(pOutFile);
+         }
+         // Rewind to end for correctness (not strictly necessary)
+         fseek(pOutFile, 0, SEEK_END);
+      }
+   }
+
+   SAFE_FCLOSE_OUT(pOutFile);
    pOutFile = NULL;
 
    if (status != LZHAM_COMP_STATUS_SUCCESS)
@@ -671,23 +869,192 @@ static bool compress_file(ilzham &lzham_dll, const char* pSrc_filename, const ch
    return true;
 }
 
+// Forward declaration: compare_files is defined later in this file but is used
+// during stdin-dump comparison so declare it here.
+static bool compare_files(const char *pFilename1, const char* pFilename2);
+
 static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const char *pDst_filename, comp_options options, const char *pSeed_filename, float *pTotal_decomp_time = NULL)
 {
-   FILE *pInFile = fopen(pSrc_filename, "rb");
-   if (!pInFile)
+   FILE *pInFile = NULL;
+   FILE *pTmpIn = NULL;
+   bool is_src_stdin = (pSrc_filename && (pSrc_filename[0] == '-') && (pSrc_filename[1] == '\0'));
+   bool is_streaming_no_tmpfile = is_src_stdin && options.m_streaming_no_tmpfile;
+   if (is_src_stdin)
    {
-      print_error("Unable to read file: %s\n", pSrc_filename);
-      return false;
+      // If the user requested streaming directly from stdin ("-S"), use stdin
+      // as the input FILE* and avoid creating any temporary file.
+      if (is_streaming_no_tmpfile)
+      {
+         pInFile = stdin;
+#ifdef WIN32
+         // Make sure stdin is in binary mode so CR/LF translations don't corrupt the stream.
+         _setmode(_fileno(stdin), _O_BINARY);
+#endif
+      }
+      else
+      {
+         // On Windows, write stdin into a named temporary file using Win32 to make it easy
+         // to inspect the produced bytes if debugging is necessary. Fall back to tmpfile() on failure.
+#ifdef WIN32
+         char tmp_path[MAX_PATH];
+         char tmp_name[MAX_PATH];
+         if ((GetTempPathA(MAX_PATH, tmp_path) == 0) || (GetTempFileNameA(tmp_path, "lz", 0, tmp_name) == 0))
+         {
+            // Fallback to anonymous tmpfile
+            pTmpIn = tmpfile_secure();
+            if (!pTmpIn) { print_error("Failed creating temporary file for stdin\n"); return false; }
+
+            _setmode(_fileno(stdin), _O_BINARY);
+            const size_t cBuf = 65536;
+            char buf[cBuf];
+            size_t n;
+            while ((n = fread(buf, 1, cBuf, stdin)) > 0)
+            {
+               if (fwrite(buf, 1, n, pTmpIn) != n) { print_error("Failed writing to temporary file for stdin\n"); fclose(pTmpIn); return false; }
+            }
+            fflush(pTmpIn);
+            _fseeki64(pTmpIn, 0, SEEK_SET);
+            pInFile = pTmpIn;
+         }
+         else
+         {
+            // Create a real file we can open and inspect later if needed.
+            HANDLE hDump = CreateFileA(tmp_name, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+            if (hDump == INVALID_HANDLE_VALUE)
+            {
+               // fallback
+               pTmpIn = tmpfile_secure();
+               if (!pTmpIn) { print_error("Failed creating temporary file for stdin\n"); return false; }
+
+               _setmode(_fileno(stdin), _O_BINARY);
+               const size_t cBuf = 65536;
+               char buf[cBuf];
+               size_t n;
+               while ((n = fread(buf, 1, cBuf, stdin)) > 0)
+               {
+                  if (fwrite(buf, 1, n, pTmpIn) != n) { print_error("Failed writing to temporary file for stdin\n"); fclose(pTmpIn); return false; }
+               }
+               fflush(pTmpIn);
+               _fseeki64(pTmpIn, 0, SEEK_SET);
+               pInFile = pTmpIn;
+            }
+            else
+            {
+               // Read from stdin handle and write to the dump file
+               HANDLE hStdIn = GetStdHandle(STD_INPUT_HANDLE);
+               if (hStdIn == INVALID_HANDLE_VALUE)
+               {
+                  print_error("Failed getting stdin handle\n");
+                  CloseHandle(hDump);
+                  return false;
+               }
+
+               const DWORD cBuf = 65536;
+               BYTE buf[cBuf];
+               DWORD bytesRead = 0;
+               DWORD bytesWritten = 0;
+               for (;;)
+               {
+                  BOOL ok = ReadFile(hStdIn, buf, cBuf, &bytesRead, NULL);
+                  if (!ok)
+                  {
+                     DWORD err = GetLastError();
+                     if ((err == ERROR_BROKEN_PIPE) || (err == ERROR_HANDLE_EOF))
+                        break;
+                     print_error("Failed reading from stdin (ReadFile error %u)\n", (unsigned)err);
+                     CloseHandle(hDump);
+                     return false;
+                  }
+                  if (bytesRead == 0)
+                     break;
+                  if (!WriteFile(hDump, buf, bytesRead, &bytesWritten, NULL) || (bytesWritten != bytesRead))
+                  {
+                     print_error("Failed writing to temporary dump file for stdin\n");
+                     CloseHandle(hDump);
+                     return false;
+                  }
+               }
+
+               FlushFileBuffers(hDump);
+               CloseHandle(hDump);
+
+               // Optionally compare the dump to an original file to detect producer corruption.
+                        std::string compare_orig = get_env_var("LZHAM_COMPARE_ORIG");
+                        if (compare_orig.empty())
+               {
+                  // If no explicit path provided, try the common name 'out_lz2.lzh' in cwd for convenience.
+                  const char *candidate = "out_lz2.lzh";
+                           FILE *pCand = fopen_secure(candidate, "rb");
+                  if (pCand)
+                  {
+                     fclose(pCand);
+                              compare_orig = candidate;
+                  }
+               }
+
+                        if (!compare_orig.empty())
+               {
+                           printf("Comparing stdin dump '%s' against original '%s'...\n", tmp_name, compare_orig.c_str());
+                           if (compare_files(compare_orig.c_str(), tmp_name))
+                  {
+                     printf("Dump matches original file. Producer side is likely OK.\n");
+                  }
+                  else
+                  {
+                     printf("Dump differs from original file. Producer likely corrupted the pipe.\n");
+                  }
+               }
+
+               // Open the dump file as a FILE* for the decompressor path
+               pInFile = fopen_secure(tmp_name, "rb");
+               if (!pInFile)
+               {
+                  print_error("Failed opening temporary dump file: %s\n", tmp_name);
+                  return false;
+               }
+            }
+         }
+#else
+         #ifdef WIN32
+         _setmode(_fileno(stdin), _O_BINARY);
+         #endif
+         const size_t cBuf = 65536;
+         char buf[cBuf];
+         size_t n;
+         while ((n = fread(buf, 1, cBuf, stdin)) > 0)
+         {
+            if (fwrite(buf, 1, n, pTmpIn) != n) { print_error("Failed writing to temporary file for stdin\n"); fclose(pTmpIn); return false; }
+         }
+         fflush(pTmpIn);
+         _fseeki64(pTmpIn, 0, SEEK_SET);
+         pInFile = pTmpIn;
+#endif
+      }
+   }
+   else
+   {
+      pInFile = open_file_with_retries(pSrc_filename, "rb");
+      if (!pInFile)
+      {
+         print_error("Unable to read file: %s\n", pSrc_filename);
+         return false;
+      }
    }
 
-   _fseeki64(pInFile, 0, SEEK_END);
-   uint64 src_file_size = _ftelli64(pInFile);
-   _fseeki64(pInFile, 0, SEEK_SET);
-   if (src_file_size < (5+9))
+   uint64 src_file_size = 0;
+   bool is_nonseekable = (pInFile == stdin) && is_streaming_no_tmpfile;
+
+   if (!is_nonseekable)
    {
-      print_error("Compressed file is too small!\n");
-      fclose(pInFile);
-      return false;
+      _fseeki64(pInFile, 0, SEEK_END);
+      src_file_size = _ftelli64(pInFile);
+      _fseeki64(pInFile, 0, SEEK_SET);
+      if (src_file_size < 6)
+      {
+         print_error("Compressed file is too small!\n");
+         SAFE_FCLOSE_IN(pInFile);
+         return false;
+      }
    }
 
    int h0 = fgetc(pInFile);
@@ -709,11 +1076,12 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
       return false;
    }
 
-   FILE *pOutFile = fopen(pDst_filename, "wb");
+   bool is_dst_stdout = (pDst_filename && (pDst_filename[0] == '-') && (pDst_filename[1] == '\0'));
+   FILE *pOutFile = is_dst_stdout ? stdout : open_file_with_retries(pDst_filename, "wb");
    if (!pOutFile)
    {
+      if (pTmpIn) fclose(pTmpIn);
       print_error("Unable to create file: %s\n", pDst_filename);
-      fclose(pInFile);
       return false;
    }
 
@@ -724,6 +1092,8 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
    }
 
    int total_header_bytes = static_cast<int>(ftell(pInFile));
+   if (is_nonseekable)
+      total_header_bytes = 5 + 8; // header bytes written by compressor: 5 (magic+dict) + 8 (orig size)
 
    // Avoid running out of memory on large files when using unbuffered decompression.
 #ifdef _XBOX
@@ -755,8 +1125,9 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
       return false;
    }
 
-   uint64 src_bytes_left = src_file_size - total_header_bytes;
-   uint64 dst_bytes_left = orig_file_size;
+   uint64 src_bytes_left = is_nonseekable ? static_cast<uint64>(-1) : (src_file_size - total_header_bytes);
+   bool unknown_orig_size = (orig_file_size == 0);
+   uint64 dst_bytes_left = unknown_orig_size ? static_cast<uint64>(-1) : orig_file_size;
 
    uint in_file_buf_size = 0;
    uint in_file_buf_ofs = 0;
@@ -811,23 +1182,50 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
    {
       if (in_file_buf_ofs == in_file_buf_size)
       {
-         in_file_buf_size = static_cast<uint>(my_min(cInBufSize, src_bytes_left));
+         uint requested = static_cast<uint>(my_min(cInBufSize, src_bytes_left));
 
-         if (fread(in_file_buf, 1, in_file_buf_size, pInFile) != in_file_buf_size)
+         if (is_nonseekable)
          {
-            print_error("Failure reading from source file!\n");
-            _aligned_free(in_file_buf);
-            _aligned_free(out_file_buf);
-            _aligned_free((void*)params.m_pSeed_bytes);
-            lzham_dll.lzham_decompress_deinit(pDecomp_state);
-            fclose(pInFile);
-            fclose(pOutFile);
-            return false;
+            // For non-seekable stdin, fread may return fewer bytes than requested.
+            size_t nread = fread(in_file_buf, 1, requested, pInFile);
+            if (nread == 0)
+            {
+               // EOF on stdin
+               in_file_buf_size = 0;
+               src_bytes_left = 0;
+            }
+            else
+            {
+               in_file_buf_size = static_cast<uint>(nread);
+               // If we read less than requested, we've hit EOF on the stream.
+               if (nread < requested)
+                  src_bytes_left = 0;
+               else
+                  src_bytes_left = static_cast<uint64>(-1);
+            }
+
+            in_file_buf_ofs = 0;
          }
+         else
+         {
+            in_file_buf_size = requested;
 
-         src_bytes_left -= in_file_buf_size;
+            if (fread(in_file_buf, 1, in_file_buf_size, pInFile) != in_file_buf_size)
+            {
+               print_error("Failure reading from source file!\n");
+               _aligned_free(in_file_buf);
+               _aligned_free(out_file_buf);
+               _aligned_free((void*)params.m_pSeed_bytes);
+               lzham_dll.lzham_decompress_deinit(pDecomp_state);
+               fclose(pInFile);
+               fclose(pOutFile);
+               return false;
+            }
 
-         in_file_buf_ofs = 0;
+            src_bytes_left -= in_file_buf_size;
+
+            in_file_buf_ofs = 0;
+         }
       }
 
       uint8 *pIn_bytes = &in_file_buf[in_file_buf_ofs];
@@ -851,33 +1249,36 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
          assert(in_file_buf_ofs <= in_file_buf_size);
       }
 
-      if (out_num_bytes)
-      {
-         if (fwrite(out_file_buf, 1, static_cast<uint>(out_num_bytes), pOutFile) != out_num_bytes)
+         if (out_num_bytes)
          {
-            print_error("Failure writing to destination file!\n");
-            _aligned_free(in_file_buf);
-            _aligned_free(out_file_buf);
-            _aligned_free((void*)params.m_pSeed_bytes);
-            lzham_dll.lzham_decompress_deinit(pDecomp_state);
-            fclose(pInFile);
-            fclose(pOutFile);
-            return false;
-         }
+            if (fwrite(out_file_buf, 1, static_cast<uint>(out_num_bytes), pOutFile) != out_num_bytes)
+            {
+               print_error("Failure writing to destination file!\n");
+               _aligned_free(in_file_buf);
+               _aligned_free(out_file_buf);
+               _aligned_free((void*)params.m_pSeed_bytes);
+               lzham_dll.lzham_decompress_deinit(pDecomp_state);
+               SAFE_FCLOSE_IN(pInFile);
+               SAFE_FCLOSE_OUT(pOutFile);
+               return false;
+            }
 
-         if (out_num_bytes > dst_bytes_left)
-         {
-            print_error("Decompressor wrote too many bytes to destination file!\n");
-            _aligned_free(in_file_buf);
-            _aligned_free(out_file_buf);
-            _aligned_free((void*)params.m_pSeed_bytes);
-            lzham_dll.lzham_decompress_deinit(pDecomp_state);
-            fclose(pInFile);
-            fclose(pOutFile);
-            return false;
+            if (!unknown_orig_size)
+            {
+               if (out_num_bytes > dst_bytes_left)
+               {
+                  print_error("Decompressor wrote too many bytes to destination file!\n");
+                  _aligned_free(in_file_buf);
+                  _aligned_free(out_file_buf);
+                  _aligned_free((void*)params.m_pSeed_bytes);
+                  lzham_dll.lzham_decompress_deinit(pDecomp_state);
+                  SAFE_FCLOSE_IN(pInFile);
+                  SAFE_FCLOSE_OUT(pOutFile);
+                  return false;
+               }
+               dst_bytes_left -= out_num_bytes;
+            }
          }
-         dst_bytes_left -= out_num_bytes;
-      }
 
       if (status >= LZHAM_DECOMP_STATUS_FIRST_SUCCESS_OR_FAILURE_CODE)
          break;
@@ -901,12 +1302,12 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
 		*pTotal_decomp_time += (float)deinit_timer.get_elapsed_secs();
 
    timer_ticks end_time = timer::get_ticks();
-   double total_time = timer::ticks_to_secs(my_max(1, end_time - start_time));
+   double total_time = timer::ticks_to_secs(my_max(1LL, end_time - start_time));
 
-   fclose(pInFile);
+   SAFE_FCLOSE_IN(pInFile);
    pInFile = NULL;
 
-   fclose(pOutFile);
+   SAFE_FCLOSE_OUT(pOutFile);
    pOutFile = NULL;
 
    if (status != LZHAM_DECOMP_STATUS_SUCCESS)
@@ -915,7 +1316,7 @@ static bool decompress_file(ilzham &lzham_dll, const char* pSrc_filename, const 
       return false;
    }
 
-   if (dst_bytes_left)
+   if (!unknown_orig_size && dst_bytes_left)
    {
       print_error("Decompressor FAILED to output the entire output file!\n");
       return false;
@@ -1234,11 +1635,11 @@ static bool test_recursive(ilzham &lzham_dll, const char *pPath, comp_options op
    char cmp_file[256], decomp_file[256];
 
 #ifdef _XBOX
-   sprintf(cmp_file, "e:\\__comp_temp_%u__.tmp", unique_id);
-   sprintf(decomp_file, "e:\\__decomp_temp_%u__.tmp", unique_id);
+   sprintf_s(cmp_file, sizeof(cmp_file), "e:\\__comp_temp_%u__.tmp", unique_id);
+   sprintf_s(decomp_file, sizeof(decomp_file), "e:\\__decomp_temp_%u__.tmp", unique_id);
 #else
-   sprintf(cmp_file, "__comp_temp_%u__.tmp", unique_id);
-   sprintf(decomp_file, "__decomp_temp_%u__.tmp", unique_id);
+   sprintf_s(cmp_file, sizeof(cmp_file), "__comp_temp_%u__.tmp", unique_id);
+   sprintf_s(decomp_file, sizeof(decomp_file), "__decomp_temp_%u__.tmp", unique_id);
 #endif
 
    for (uint file_index = first_file_index; file_index < files.size(); file_index++)
@@ -1247,7 +1648,7 @@ static bool test_recursive(ilzham &lzham_dll, const char *pPath, comp_options op
 
       printf("***** [%u of %u] Compressing file \"%s\" to \"%s\"\n", 1 + file_index, (uint)files.size(), src_file.c_str(), cmp_file);
 
-      FILE *pFile = fopen(src_file.c_str(), "rb");
+      FILE *pFile = fopen_secure(src_file.c_str(), "rb");
       if (!pFile)
       {
          printf("Skipping unreadable file \"%s\"\n", src_file.c_str());
@@ -1350,7 +1751,7 @@ static bool test_recursive(ilzham &lzham_dll, const char *pPath, comp_options op
       }
 
       int64 cmp_file_size = 0;
-      pFile = fopen(cmp_file, "rb");
+   pFile = fopen_secure(cmp_file, "rb");
       if (pFile)
       {
          fseek(pFile, 0, SEEK_END);
@@ -1525,6 +1926,15 @@ int main_internal(string_array cmd_line, int num_helper_threads, ilzham &lzham_d
    for (int i = 0; i < (int)cmd_line.size(); i++)
    {
       const std::string &str = cmd_line[i];
+      // Support a GNU-style long option for quiet prior to normal option parsing
+      if (str == "--quiet")
+      {
+         g_quiet_stdio = true;
+         cmd_line.erase(cmd_line.begin() + i);
+         i--;
+         continue;
+      }
+
       if (str[0] == '-')
       {
          if (str.size() < 2)
@@ -1653,6 +2063,19 @@ int main_internal(string_array cmd_line, int num_helper_threads, ilzham &lzham_d
                options.m_low_memory_finder = true;
                break;
             }
+            case 'S':
+            {
+               options.m_streaming_no_tmpfile = true;
+               // Ensure streaming mode routes diagnostics to stderr (not suppressed)
+               g_quiet_stdio = false;
+               break;
+            }
+           case 'q':
+           {
+              // Quiet: suppress all diagnostic output (stdout remains binary)
+              g_quiet_stdio = true;
+              break;
+           }
             case 'f':
             {
                options.m_fast_bytes = atoi(str.c_str() + 2);
@@ -1670,6 +2093,15 @@ int main_internal(string_array cmd_line, int num_helper_threads, ilzham &lzham_d
 
          continue;
       }
+
+            // Support a GNU-style long option for quiet
+            if (str == "--quiet")
+            {
+                g_quiet_stdio = true;
+                cmd_line.erase(cmd_line.begin() + i);
+                i--;
+                continue;
+            }
 
       if ((options.m_unbuffered_decompression) && (!seed_filename.empty()))
       {
@@ -1749,9 +2181,9 @@ int main_internal(string_array cmd_line, int num_helper_threads, ilzham &lzham_d
             char decomp_file[256];
 
 #ifdef _XBOX
-            sprintf(decomp_file, "e:\\__decomp_temp_%u__.tmp", (uint)GetTickCount());
+            sprintf_s(decomp_file, sizeof(decomp_file), "e:\\__decomp_temp_%u__.tmp", (uint)GetTickCount());
 #else
-            sprintf(decomp_file, "__decomp_temp_%u__.tmp", (uint)timer::get_ms());
+            sprintf_s(decomp_file, sizeof(decomp_file), "__decomp_temp_%u__.tmp", (uint)timer::get_ms());
 #endif
             if (!decompress_file(lzham_dll, cmp_file.c_str(), decomp_file, options, seed_filename.length() ? seed_filename.c_str() : NULL))
             {
@@ -1817,7 +2249,7 @@ int main_internal(string_array cmd_line, int num_helper_threads, ilzham &lzham_d
          if (test_recursive(lzham_dll, cmd_line[0].c_str(), options, seed_filename.length() ? seed_filename.c_str() : NULL, &stats, 1, 1024*1024*512))
 				exit_status = EXIT_SUCCESS;
 
-			FILE *pFile = fopen("stats.csv", "w");
+         FILE *pFile = fopen_secure("stats.csv", "w");
 			if (pFile)
 			{
 				const float cpu_slowdown = 12.0f;
@@ -1954,10 +2386,21 @@ int main(int argc, char *argv[])
 
    printf("Expecting LZHAM DLL Version 0x%04X\n", LZHAM_DLL_VERSION);
 
+#if defined(WIN32) || defined(_WIN32)
+   // Set stdio to binary mode on Windows to avoid CR/LF translations corrupting binary streams
+   // This is a conservative fix to improve piping robustness for binary data.
+   _setmode(_fileno(stdin), _O_BINARY);
+   _setmode(_fileno(stdout), _O_BINARY);
+   _setmode(_fileno(stderr), _O_BINARY);
+#endif
+
 #if LZHAM_STATIC_LIB
    lzham_static_lib lzham_lib;
    lzham_lib.load();
-   printf("Using static libraries.\n");
+   /* Clearer message: indicate we're using the static in-process helper
+    * so users don't confuse this with the runtime-loaded DLL message below.
+    */
+   printf("Using static LZHAM helper (statically linked into this process).\n");
 #else
    lzham_dll_loader lzham_lib;
    char lzham_dll_filename[MAX_PATH];
@@ -1986,7 +2429,10 @@ int main(int argc, char *argv[])
    }
 #endif
 
-   printf("Loaded LZHAM DLL version 0x%04X\n\n", lzham_lib.lzham_get_version());
+   /* Use a neutral term 'library' here so the message doesn't contradict
+    * the static/helper message printed earlier.
+    */
+   printf("Loaded LZHAM library version 0x%04X\n\n", lzham_lib.lzham_get_version());
 
    string_array cmd_line;
    for (int i = 1; i < argc; i++)

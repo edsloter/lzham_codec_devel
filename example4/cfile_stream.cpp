@@ -94,12 +94,8 @@ namespace lzham_ex
          return false;
       }
 
-      FILE* pFile = NULL;
-#ifdef _MSC_VER
-      fopen_s(&pFile, pFilename, pMode);
-#else
-      pFile = fopen(pFilename, pMode);
-#endif
+   FILE* pFile = NULL;
+   pFile = fopen_secure(pFilename, pMode);
       m_has_ownership = true;
 
       if (!pFile)

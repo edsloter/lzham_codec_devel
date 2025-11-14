@@ -14,17 +14,17 @@
 
 #if LZHAM_ERROR_LOGGING
    #if LZHAM_VERBOSE_ERROR_LOGGING
-      void lzham_log_error(const char *pFunc, const char *pFile, int line, const char *pMsg, int idx);
+   LZHAM_DECOMP_EXPORT void lzham_log_error(const char *pFunc, const char *pFile, int line, const char *pMsg, int idx);
    #else
-      void lzham_log_error(int idx);
+   LZHAM_DECOMP_EXPORT void lzham_log_error(int idx);
    #endif
 #endif
 
 const unsigned int LZHAM_FAIL_EXCEPTION_CODE = 256U;
-void lzham_enable_fail_exceptions(bool enabled);
+LZHAM_DECOMP_EXPORT void lzham_enable_fail_exceptions(bool enabled);
 
-void lzham_assert(const char* pExp, const char* pFile, unsigned line);
-void lzham_fail(const char* pExp, const char* pFile, unsigned line);
+LZHAM_DECOMP_EXPORT void lzham_assert(const char* pExp, const char* pFile, unsigned line);
+LZHAM_DECOMP_EXPORT void lzham_fail(const char* pExp, const char* pFile, unsigned line);
 
 #ifdef NDEBUG
    #define LZHAM_ASSERT(x) ((void)0)
@@ -40,8 +40,8 @@ void lzham_fail(const char* pExp, const char* pFile, unsigned line);
 #define LZHAM_ASSERT_OPEN_RANGE(x, l, h) LZHAM_ASSERT((x >= l) && (x < h))
 #define LZHAM_ASSERT_CLOSED_RANGE(x, l, h) LZHAM_ASSERT((x >= l) && (x <= h))
 
-void lzham_trace(const char* pFmt, va_list args);
-void lzham_trace(const char* pFmt, ...);
+LZHAM_DECOMP_EXPORT void lzham_trace(const char* pFmt, va_list args);
+LZHAM_DECOMP_EXPORT void lzham_trace(const char* pFmt, ...);
 
 // Borrowed from boost libraries.
 template <bool x>  struct assume_failure;

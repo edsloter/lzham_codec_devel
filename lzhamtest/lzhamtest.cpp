@@ -78,6 +78,12 @@
    #define QUAD_INT_FMT "%llu"
 #endif
 
+// The secure CRT's sprintf_s() only exists on MSVC/MinGW. Everything else gets
+// the C99 equivalent so this file builds with gcc/clang on Linux and OSX.
+#if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__MINGW64__)
+   #define sprintf_s(buf, size, ...) snprintf(buf, size, __VA_ARGS__)
+#endif
+
 #if LZHAM_USE_LZHAM_DLL
    #include "lzham_dynamic_lib.h"
 #else

@@ -1,0 +1,112 @@
+# ---------------------------------------------------------------------------
+# CMake / build trees
+# ---------------------------------------------------------------------------
+
+# scripts/build.sh and the scripts\build_*.ps1 helpers
+/build/
+/build_*/
+/out/
+# in-source build output (lzhamtest/CMakeLists.txt)
+/bin_linux/
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeUserPresets.json
+compile_commands.json
+CMakePresets.json
+Testing/
+CTestCostData.txt
+
+# ---------------------------------------------------------------------------
+# Compiled output
+# ---------------------------------------------------------------------------
+
+*.obj
+*.o
+*.a
+*.lib
+*.exp
+*.iobj
+*.ipdb
+*.idb
+*.ilk
+*.pdb
+*.sbr
+*.bssc
+*.tlog
+*.res
+*.map
+
+*.exe
+*.dll
+*.so
+*.so.*
+*.dylib
+*.dylib.*
+
+# Staged binaries, import libraries and packed artifact sets
+/bin/
+/lib/
+/artifacts/
+
+# Test archives and lzhamtest scratch files
+*.lzh
+__comp_temp_*.tmp
+__decomp_temp_*.tmp
+
+# ---------------------------------------------------------------------------
+# Logs and scratch files
+# ---------------------------------------------------------------------------
+
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+*~
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------------
+# IDE / editor state
+# ---------------------------------------------------------------------------
+
+# Visual Studio solution state, Copilot indexes, chat sessions
+/.vs/
+
+*.user
+*.suo
+*.wsuo
+*.userosscache
+*.sln.docstates
+*.db
+*.opendb
+*.ipch
+*.aps
+*.VC.db
+*.vsidx
+
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Python (scripts\hexdump.py)
+# ---------------------------------------------------------------------------
+
+__pycache__/
+*.py[cod]
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+Desktop.ini
+$RECYCLE.BIN/

@@ -80,8 +80,13 @@ if(MSVC)
   # but the import library for lzhamcomp does not re-export lzhamdecomp symbols,
   # so consumers (lzhamdll) must link to both.
   target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp)
+elseif(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  # When BUILD_SHARED_LIBS=OFF the three archives form a reference cycle (lzhamcore's
+  # lzham_lib.cpp calls lzham::lzham_lib_z_*() in lzhamcomp/lzhamdecomp). Rescan the
+  # group so the shared object's undefined symbols don't survive to runtime.
+  target_link_libraries(${PROJECT_NAME} PRIVATE "$<LINK_GROUP:RESCAN,lzhamcomp,lzhamdecomp,lzhamcore>" pthread)
 else()
-  target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp pthread)
+  target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp lzhamcore lzhamcomp lzhamdecomp lzhamcore pthread)
 endif()
 
 # Install rules

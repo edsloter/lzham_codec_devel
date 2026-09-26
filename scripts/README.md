@@ -28,6 +28,25 @@ This README documents the helper scripts in the `scripts/` directory and the com
 
 ### Top-level scripts
 
+- `build.sh` — All-in-one build script for Linux (bash). Wraps the whole flow: toolchain checks, CMake configure, build, artifact staging, smoke test, optional install.
+  - Builds `lzhamtest` from static libraries (`-DBUILD_SHARED_LIBS=OFF`), which is the only configuration that builds on Linux — the `lzham_dynamic_lib.h` loader is Win32-only.
+  - Stages run-ready artifacts into `artifacts/linux/{dynamic,static}/{bin,lib,include}` and keeps build logs under `build/linux/<variant>/logs/`.
+  - Smoke-tests the result by round-tripping `tests/hello_world.txt` through both the file and the stdin/stdout streaming (`-S`) paths; with `--shared` it also `dlopen`s the built `.so` and round-trips data through its zlib-compatible API.
+  - Flags:
+    - `-c, --config <Release|Debug|RelWithDebInfo|MinSizeRel>` (default: Release)
+    - `-s`, `-static`, `--static` — link the binary fully statically (`-static`); probes for a static libc first
+    - `-S`, `--shared` — also build the unified shared library (`liblzham_x64.so`) exposing the public C API; enables `CMAKE_POSITION_INDEPENDENT_CODE` so the static archives can go into a `.so`
+    - `-j, --jobs <n>`, `-B, --build-dir <dir>`, `-o, --output <dir>`, `-t, --target <name>` (repeatable)
+    - `-i, --install [prefix]` — install headers, libraries and the binary (default prefix `/usr/local`)
+    - `--no-stage`, `--no-test`, `--strip`, `--clean`, `--clean-all`, `--cc <compiler>`, `--verbose`, `-h`
+  - Examples:
+    ```bash
+    ./scripts/build.sh -j "$(nproc)"          # dynamic binary + static libs
+    ./scripts/build.sh -static -c Release      # fully static binary
+    ./scripts/build.sh --shared                # also produce liblzham_x64.so
+    ./scripts/build.sh --clean -i ~/.local     # from scratch, then install
+    ```
+
 - `build_all_artifacts.ps1` — Wrapper that builds all three variants (static, unified, modular). Key behavior and flags:
   - Runs an initial cleanup and log cleanup (unless suppressed).
   - Builds `static`, `unified`, and `shared/modular` variants (in parallel by default).

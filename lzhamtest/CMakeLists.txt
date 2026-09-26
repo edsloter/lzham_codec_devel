@@ -70,7 +70,20 @@ else()
   message("Configuring lzhamtest to use static LZHAM libs")
   target_compile_definitions(${PROJECT_NAME} PRIVATE LZHAM_STATIC_LIB=1 LZHAM_USE_LZHAM_DLL=0)
   # Link to static lzham libraries (lzhamcomp and lzhamdecomp). These targets depend on lzhamcore.
-  target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp)
+  # lzhamcore is a *static* archive containing lzham_lib.cpp, which calls into
+  # lzham::lzham_lib_z_*() implemented in lzhamcomp/lzhamdecomp, so the three
+  # archives reference each other. GNU ld resolves a single left-to-right pass
+  # only, so tell it to rescan the group until it converges. MSVC doesn't care
+  # about archive ordering, and doesn't understand LINK_GROUP.
+  if (MSVC)
+    target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp)
+  elseif (CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "$<LINK_GROUP:RESCAN,lzhamcomp,lzhamdecomp,lzhamcore>")
+  else()
+    # Older CMake: list the archives twice so the second pass picks up whatever
+    # the first pass left dangling.
+    target_link_libraries(${PROJECT_NAME} PRIVATE lzhamcomp lzhamdecomp lzhamcore lzhamcomp lzhamdecomp lzhamcore)
+  endif()
 endif()
 
 # Apply GCC_COMPILE_FLAGS only affects non-MSVC builds (it's empty on MSVC)

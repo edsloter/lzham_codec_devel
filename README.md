@@ -2,6 +2,7 @@ LZHAM - Lossless Data Compression Codec
 =============
 
 This is a mod to add stdin/stdout, and many other changes. 
+##update Sept. 26, 2026 fix to build working linux binary.## 
 
 <p>Copyright (c) 2009-2015 Richard Geldreich, Jr. - richgel99@gmail.com - MIT License</p>
 

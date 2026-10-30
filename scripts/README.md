@@ -21,6 +21,7 @@ From the repository root (PowerShell):
 ```powershell
 # Build shared (DLL) copy
 .\scripts\build_shared.ps1
+```
 
 ## scripts/ — Build & test helper scripts
 
@@ -150,14 +151,16 @@ This README documents the helper scripts in the `scripts/` directory and the com
     .\scripts\compress_upx.ps1 -NoParallel -Backup -UpxPath 'C:\tools\upx\upx.exe'
     ```
   - Notes:
-    - The script will skip files containing `_original.` to avoid touching preserved copies. If you'd like backups before compressing, consider copying originals to `*_original.*` yourself or request an enhancement to the script to add a `-Backup` switch.
+    - The script skips files containing `_original.` to avoid touching preserved copies. Pass `-Backup` to create those preserved copies before compressing.
   - UPX information (displayed by the script):
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                        Ultimate Packer for eXecutables
-                          Copyright (C) 1996 - 2025
-UPX 5.0.2       Markus Oberhumer, Laszlo Molnar & John Reiser   Jul 20th 2025
-UPX comes with ABSOLUTELY NO WARRANTY; for details visit https://upx.github.io
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ```text
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                            Ultimate Packer for eXecutables
+                              Copyright (C) 1996 - 2025
+    UPX 5.0.2       Markus Oberhumer, Laszlo Molnar & John Reiser   Jul 20th 2025
+    UPX comes with ABSOLUTELY NO WARRANTY; for details visit https://upx.github.io
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ```
 
 - `run_stream_test.ps1` / `run_stream_debug.ps1` — Helpers to exercise the streaming (stdin/stdout) test harness paths for compression/decompression with additional logging/debugging.
@@ -193,11 +196,4 @@ Run a single static build without truncating `tests/` and without creating archi
 .\scripts\build_static.ps1 -NoCleanupTests -NoRunTests
 ```
 
-If you need a compatibility shim for an old filename (`cleanuptests.ps1`), consider adding a tiny forwarding script that calls `cleanup_tests.ps1`. The repository now uses `cleanup_tests.ps1` as the canonical name.
-
-If you'd like, I can also:
-
-- Add a short `scripts/USAGE.md` with copy-paste commands for CI pipelines.
-- Add a compatibility shim file `cleanuptests.ps1` that forwards to `cleanup_tests.ps1`.
-
-If you'd like any of those, tell me which and I'll add them.
+The canonical filename is `cleanup_tests.ps1`. Any older reference to `cleanuptests.ps1` should be updated to the canonical name.

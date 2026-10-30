@@ -382,8 +382,11 @@ ok "configure finished (log: ${LOG_DIR#"$ROOT_DIR"/}/configure.log)"
 
 phase "Building"
 BUILD_ARGS=(--build "$BUILD_DIR_ABS" --config "$CONFIG" --parallel "$JOBS")
-BUILD_TARGETS=(lzhamtest)
-[ "$BUILD_SHARED" -eq 1 ] && BUILD_TARGETS+=(lzhamdll)
+# lzhamdll always produces a deliverable (liblzham_x64.a normally, liblzham_x64.so
+# with --shared) and carries an install() rule, so it must be built even when the
+# tool is the only thing the caller cares about -- otherwise `cmake --install`
+# fails on the missing archive.
+BUILD_TARGETS=(lzhamtest lzhamdll)
 if [ ${#EXTRA_TARGETS[@]} -gt 0 ]; then
   BUILD_TARGETS+=("${EXTRA_TARGETS[@]}")
 fi
@@ -628,10 +631,9 @@ fi
 
 if [ -n "$INSTALL" ]; then
   phase "Installing to $INSTALL_PREFIX"
+  # lzhamtest carries its own install() rule now, so this installs
+  # bin/lzhamtest, lib/ and include/ in one pass.
   cmake --install "$BUILD_DIR_ABS" --config "$CONFIG" --prefix "$INSTALL_PREFIX"
-  # lzhamtest has no install() rule of its own, so place the binary by hand.
-  install -d "$INSTALL_PREFIX/bin"
-  install -m 0755 "$TEST_BIN" "$INSTALL_PREFIX/bin/lzhamtest"
   ok "installed into $INSTALL_PREFIX"
 fi
 

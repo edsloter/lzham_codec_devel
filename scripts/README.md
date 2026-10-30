@@ -29,7 +29,8 @@ This README documents the helper scripts in the `scripts/` directory and the com
 ### Top-level scripts
 
 - `build.sh` — All-in-one build script for Linux (bash). Wraps the whole flow: toolchain checks, CMake configure, build, artifact staging, smoke test, optional install.
-  - Builds `lzhamtest` from static libraries (`-DBUILD_SHARED_LIBS=OFF`), which is the only configuration that builds on Linux — the `lzham_dynamic_lib.h` loader is Win32-only.
+  - Builds `lzhamtest` from static libraries (`-DBUILD_SHARED_LIBS=OFF`). The modular shared layout (`BUILD_SHARED_LIBS=ON`) routes `lzhamtest` through the Win32-only `lzham_dynamic_lib.h` loader, so off Windows that target is skipped with a warning while its libraries still build and install.
+  - `BUILD_SHARED_LIBS` now defaults to `OFF` on non-Windows, so a plain `cmake . && make install` (or an out-of-source build dir) produces `bin/lzhamtest`, `lib/` and `include/` with no extra flags. `lzhamtest` carries its own `install()` rule.
   - Stages run-ready artifacts into `artifacts/linux/{dynamic,static}/{bin,lib,include}` and keeps build logs under `build/linux/<variant>/logs/`.
   - Smoke-tests the result by round-tripping `tests/hello_world.txt` through both the file and the stdin/stdout streaming (`-S`) paths; with `--shared` it also `dlopen`s the built `.so` and round-trips data through its zlib-compatible API.
   - Flags:

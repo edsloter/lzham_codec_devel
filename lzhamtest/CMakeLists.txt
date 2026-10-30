@@ -2,6 +2,21 @@
 PROJECT(lzhamtest)
 option(BUILD_X64 "build 64-bit" TRUE)
 
+# BUILD_SHARED_LIBS makes lzhamtest go through include/lzham_dynamic_lib.h,
+# which is a Win32 runtime loader (LoadLibrary/GetProcAddress/HRESULT). There is
+# no POSIX equivalent here, so off Windows that configuration cannot compile.
+# Skip the tool rather than failing the whole build: `make install` builds `all`
+# first, so an unbuildable lzhamtest would otherwise break installing the
+# libraries too. The libraries themselves still build and install fine.
+if(BUILD_SHARED_LIBS AND NOT WIN32)
+  message(WARNING
+    "lzhamtest: BUILD_SHARED_LIBS=ON is Windows-only (it uses the Win32 DLL "
+    "loader); skipping the lzhamtest executable. The shared libraries will "
+    "still be built and installed. Use -DBUILD_SHARED_LIBS=OFF for a working "
+    "lzhamtest, or -DBUILD_LZHAMDLL_SHARED=ON for one unified liblzham_x64.so.")
+  return()
+endif()
+
 message("Initial BUILD_X64=${BUILD_X64}")
 message("Initial CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
@@ -94,3 +109,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${GCC_COMPILE_FLAGS} -D_DEBUG")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COMPILE_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} ${GCC_COMPILE_FLAGS} -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COMPILE_FLAGS} -D_DEBUG")
+
+# Install the CLI/test tool alongside the libraries so `make install` yields a
+# usable tree: bin/lzhamtest plus lib/ and include/ from the other targets.
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

@@ -9,6 +9,9 @@
 # in-source build output (lzhamtest/CMakeLists.txt)
 /bin_linux/
 
+# in-source `cmake .` output (Makefile is generated in every directory that has
+# a CMakeLists.txt; there are no hand-written Makefiles in this repo)
+Makefile
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
